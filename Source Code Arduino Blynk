@@ -1,0 +1,71 @@
+#include <Wire.h>
+#include <BH1750.h>
+#include <SPI.h>
+#include <Blynk.h>
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+#include <Servo.h>
+#include <DHT.h>
+#define BLYNK_PRINT Serial
+#define DHTPIN 2
+#define DHTTYPE DHT11
+
+
+char auth[] = "zcRcAQSeYpvcjgy4Z3JSQsRA5tm-FMY7";
+char ssid[] = "TJIOE MEI KENG";
+char pass[] = "xpander0";
+
+
+BH1750 lightMeter;
+Servo servo; 
+DHT dht(DHTPIN, DHTTYPE);
+BlynkTimer timer;
+
+
+void sendSensor()
+{
+  float h = dht.readHumidity();
+  float t = dht.readTemperature(); // or dht.readTemperature(true) for Fahrenheit
+
+  if (isnan(h) || isnan(t)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
+  }
+  // You can send any value at any time.
+  // Please don't send more that 10 values per second.
+  Blynk.virtualWrite(V5, h);  //V5 is for Humidity
+  Blynk.virtualWrite(V6, t);  //V6 is for Temperature
+}
+
+
+void setup()
+{
+  Wire.begin();
+  Serial.begin(9600);
+  Blynk.begin(auth, ssid, pass);
+  lightMeter.begin();
+  servo.attach(15);
+
+   dht.begin();
+
+  // Setup a function to be called every second
+  timer.setInterval(1000L, sendSensor);
+}
+
+void loop() 
+{
+  Blynk.run();
+  float lux = lightMeter.readLightLevel();
+  Serial.print("Light Meter: ");
+  Serial.print(lux);
+  Serial.println(" lx");
+  Blynk.virtualWrite(V2, lux);
+  delay(1000);
+  timer.run(); // Initiates SimpleTimer
+}
+
+BLYNK_WRITE(V1)
+
+{
+   servo.write(param.asInt());
+}
